@@ -51,6 +51,7 @@ public final class Connection {
     public var handle: COpaquePointer { return _handle }
 
     private var _handle: COpaquePointer = nil
+    private var owned: Bool = true
 
     /// Initializes a new SQLite connection.
     ///
@@ -74,6 +75,20 @@ public final class Connection {
 
     /// Initializes a new connection to a database.
     ///
+    /// :param: db A pre-existing database handle
+    ///
+    ///   - closeWhenDone: Whether or not to call sqlite3_close_v2 in deinit.
+    ///
+    ///     Default: `false`.
+    ///
+    /// :returns: A new database connection.
+    public init(_ db: COpaquePointer, closeWhenDone: Bool = false) {
+        _handle = db; owned = closeWhenDone
+        dispatch_queue_set_specific(queue, Connection.queueKey, queueContext, nil)
+    }
+
+    /// Initializes a new connection to a database.
+    ///
     /// - Parameters:
     ///
     ///   - filename: The location of the database. Creates a new database if
@@ -91,7 +106,9 @@ public final class Connection {
     }
 
     deinit {
-        sqlite3_close_v2(handle)
+        if owned == true {
+            sqlite3_close_v2(handle)
+        }
     }
 
     // MARK: -
